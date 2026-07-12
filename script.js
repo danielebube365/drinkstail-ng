@@ -6,9 +6,9 @@
 
   const y = $('#year'); if (y) y.textContent = new Date().getFullYear();
 
-  /* nav solid on scroll */
+  /* nav solid once the curtain covers the hero */
   const nav = $('#nav');
-  const onScroll = () => nav.classList.toggle('is-solid', window.scrollY > 40);
+  const onScroll = () => nav.classList.toggle('is-solid', window.scrollY > innerHeight * 0.5);
   document.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
@@ -39,8 +39,11 @@
     }
   }
 
-  /* videos: lazy-load (data-src) + play only what's on screen.
-     Scroll-based so it works reliably everywhere. */
+  /* videos, tuned for slow networks:
+     - posters show instantly while nothing downloads
+     - only the hero loads up front (metadata only)
+     - the rest carry data-src and download only when scrolled near (600px)
+     - videos play only while on screen, and pause off screen */
   const vids = $$('video');
   vids.forEach((v) => { v.muted = true; v.setAttribute('muted', ''); });
   const loadSrc = (v) => { if (v.dataset.src) { v.src = v.dataset.src; delete v.dataset.src; v.load(); } };
@@ -52,7 +55,7 @@
       const vh = innerHeight;
       vids.forEach((v) => {
         const r = v.getBoundingClientRect();
-        if (r.top < vh + 600 && r.bottom > -600) loadSrc(v);       // preload when near
+        if (r.top < vh + 600 && r.bottom > -600) loadSrc(v);      /* preload when near */
         const onScreen = r.top < vh + 100 && r.bottom > -100;
         if (onScreen) { if (v.paused) v.play().catch(() => {}); }
         else if (!v.paused) v.pause();
