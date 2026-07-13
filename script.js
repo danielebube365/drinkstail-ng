@@ -6,9 +6,9 @@
 
   const y = $('#year'); if (y) y.textContent = new Date().getFullYear();
 
-  /* nav solid once the curtain covers the hero */
+  /* nav solid on scroll */
   const nav = $('#nav');
-  const onScroll = () => nav.classList.toggle('is-solid', window.scrollY > innerHeight * 0.5);
+  const onScroll = () => nav.classList.toggle('is-solid', window.scrollY > 40);
   document.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
