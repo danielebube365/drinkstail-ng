@@ -43,20 +43,22 @@
      - posters show instantly while nothing downloads
      - only the hero loads up front (metadata only)
      - the rest carry data-src and download only when scrolled near (600px)
-     - videos play only while on screen, and pause off screen */
+     - videos play only while on screen; a dimmed carousel "peek" never plays */
   const vids = $$('video');
   vids.forEach((v) => { v.muted = true; v.setAttribute('muted', ''); });
   const loadSrc = (v) => { if (v.dataset.src) { v.src = v.dataset.src; delete v.dataset.src; v.load(); } };
+  const isPeek = (v) => { const p = v.closest('.panel'); return p && p.classList.contains('is-peek'); };
+  let manage = () => {};
 
   if (reduced) {
     vids.forEach((v) => v.removeAttribute('autoplay'));
   } else {
-    const manage = () => {
+    manage = () => {
       const vh = innerHeight;
       vids.forEach((v) => {
         const r = v.getBoundingClientRect();
         if (r.top < vh + 600 && r.bottom > -600) loadSrc(v);      /* preload when near */
-        const onScreen = r.top < vh + 100 && r.bottom > -100;
+        const onScreen = r.top < vh + 100 && r.bottom > -100 && !isPeek(v);
         if (onScreen) { if (v.paused) v.play().catch(() => {}); }
         else if (!v.paused) v.pause();
       });
@@ -65,5 +67,37 @@
     addEventListener('resize', manage);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) manage(); });
     manage();
+  }
+
+  /* service peek carousel (desktop only): one video active, the other dimmed
+     beside it; arrows or clicking the peek swap them. Mobile stays stacked. */
+  const carousel = $('#serviceCarousel');
+  if (carousel) {
+    const panels = $$('.panel', carousel);
+    const prev = $('.pnav--prev', carousel), next = $('.pnav--next', carousel);
+    const mq = matchMedia('(min-width:760px)');
+    let idx = 0;
+    const render = () => {
+      if (!mq.matches) {
+        panels.forEach((p) => p.classList.remove('is-active', 'is-peek', 'peek-left', 'peek-right'));
+      } else {
+        panels.forEach((p, i) => {
+          const peek = i !== idx;
+          p.classList.toggle('is-active', !peek);
+          p.classList.toggle('is-peek', peek);
+          p.classList.toggle('peek-left', peek && i < idx);
+          p.classList.toggle('peek-right', peek && i > idx);
+        });
+      }
+      manage();
+    };
+    const go = (d) => { idx = (idx + d + panels.length) % panels.length; render(); };
+    if (prev) prev.addEventListener('click', () => go(-1));
+    if (next) next.addEventListener('click', () => go(1));
+    panels.forEach((p, i) => p.addEventListener('click', (e) => {
+      if (mq.matches && p.classList.contains('is-peek')) { e.preventDefault(); idx = i; render(); }
+    }));
+    (mq.addEventListener ? mq.addEventListener('change', render) : mq.addListener(render));
+    render();
   }
 })();
